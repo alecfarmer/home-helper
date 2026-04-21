@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Helper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <nav id="sidebar">
+      <div id="sidebar-header">
+        <div id="app-icon">🏠</div>
+        <div id="app-title">Home Helper</div>
+      </div>
+      <ul id="nav-list">
+        <li class="nav-item active" data-screen="home">
+          <span class="nav-icon">🌐</span> Fix My Internet
+        </li>
+        <li class="nav-item" data-screen="tools">
+          <span class="nav-icon">🔧</span> Tools
+        </li>
+        <li class="nav-item" data-screen="vpn">
+          <span class="nav-icon">🔒</span> VPN
+        </li>
+        <li class="nav-item" data-screen="ubiquiti">
+          <span class="nav-icon">📡</span> Network Map
+        </li>
+        <li class="nav-item" data-screen="settings">
+          <span class="nav-icon">⚙️</span> Settings
+        </li>
+      </ul>
+      <div id="wifi-badge"></div>
+    </nav>
+
+    <!-- Main content -->
+    <main id="content">
+
+      <!-- HOME SCREEN -->
+      <section id="screen-home" class="screen active">
+        <div id="home-idle">
+          <div id="home-status-icon">🌐</div>
+          <h1 id="home-title">Having trouble with the internet?</h1>
+          <p id="home-subtitle">Press the button below and I'll fix it for you.</p>
+          <button id="btn-fix" class="btn-primary btn-huge">
+            Fix My Internet
+          </button>
+          <div id="home-current-wifi" class="status-chip"></div>
+        </div>
+
+        <div id="home-running" class="hidden">
+          <h2 class="section-title">Checking your connection…</h2>
+          <div id="steps-list"></div>
+          <button id="btn-cancel" class="btn-ghost">Cancel</button>
+        </div>
+
+        <div id="home-success" class="hidden">
+          <div class="result-icon">✅</div>
+          <h2 class="result-title">Everything looks good!</h2>
+          <p class="result-body">Your internet is working. You should be able to browse the web and watch videos normally.</p>
+          <button id="btn-fix-again" class="btn-secondary">Check Again</button>
+        </div>
+
+        <div id="home-failure" class="hidden">
+          <div class="result-icon">❌</div>
+          <h2 class="result-title">I couldn't fix it automatically</h2>
+          <p class="result-body" id="failure-message"></p>
+          <div id="contact-alec-box">
+            <div class="contact-header">📱 Contact Alec</div>
+            <p class="contact-instructions">Tell Alec exactly what this says:</p>
+            <div id="contact-details" class="code-block"></div>
+            <div class="contact-buttons">
+              <button id="btn-copy-details" class="btn-secondary">Copy to Clipboard</button>
+              <button id="btn-email-alec" class="btn-primary">Email Alec</button>
+            </div>
+          </div>
+          <button id="btn-try-again" class="btn-ghost">Try Again</button>
+        </div>
+      </section>
+
+      <!-- TOOLS SCREEN -->
+      <section id="screen-tools" class="screen hidden">
+        <h2 class="section-title">Network Tools</h2>
+
+        <div class="card">
+          <h3 class="card-title">Ping Test</h3>
+          <p class="card-desc">Check if a website or IP address is reachable.</p>
+          <div class="input-row">
+            <input id="ping-input" class="text-input" type="text" placeholder="e.g. google.com or 1.1.1.1" />
+            <button id="btn-ping" class="btn-primary">Ping</button>
+          </div>
+          <div id="ping-result" class="result-area hidden"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Wi-Fi Networks</h3>
+          <p class="card-desc">See nearby networks and connect to a saved one.</p>
+          <div class="toolbar">
+            <button id="btn-scan-wifi" class="btn-secondary">Scan for Networks</button>
+            <button id="btn-refresh-saved" class="btn-ghost">Saved Networks</button>
+          </div>
+          <div id="wifi-list" class="list-area"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Quick Tests</h3>
+          <div class="quick-tests">
+            <button class="btn-test" data-host="1.1.1.1" data-label="Cloudflare">🟡 Cloudflare</button>
+            <button class="btn-test" data-host="8.8.8.8" data-label="Google DNS">🟡 Google DNS</button>
+            <button class="btn-test" data-host="google.com" data-label="Google">🟡 Google</button>
+            <button class="btn-test" data-host="apple.com" data-label="Apple">🟡 Apple</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VPN SCREEN -->
+      <section id="screen-vpn" class="screen hidden">
+        <h2 class="section-title">VPN Connections</h2>
+        <p class="section-desc">Securely connect to Alec's network from anywhere.</p>
+
+        <div id="vpn-list" class="card-list"></div>
+
+        <button id="btn-add-vpn" class="btn-secondary">+ Add VPN</button>
+
+        <div id="vpn-form" class="card hidden">
+          <h3 class="card-title">New VPN Connection</h3>
+          <div class="form-grid">
+            <label>Name <input id="vpn-name" class="text-input" placeholder="Home VPN" /></label>
+            <label>Server <input id="vpn-server" class="text-input" placeholder="vpn.example.com" /></label>
+            <label>Username <input id="vpn-user" class="text-input" placeholder="username" /></label>
+            <label>Password <input id="vpn-pass" class="text-input" type="password" placeholder="password" /></label>
+            <label>Type
+              <select id="vpn-type" class="text-input">
+                <option value="IKEv2">IKEv2 (recommended)</option>
+                <option value="L2TP">L2TP/IPSec</option>
+              </select>
+            </label>
+            <label id="vpn-secret-row">Shared Secret <input id="vpn-secret" class="text-input" type="password" placeholder="shared secret" /></label>
+          </div>
+          <div class="form-actions">
+            <button id="btn-save-vpn" class="btn-primary">Save & Install</button>
+            <button id="btn-cancel-vpn" class="btn-ghost">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- UBIQUITI SCREEN -->
+      <section id="screen-ubiquiti" class="screen hidden">
+        <h2 class="section-title">Network Map</h2>
+        <p class="section-desc">See what's connected to your Ubiquiti router.</p>
+
+        <div id="ubiquiti-setup" class="card">
+          <h3 class="card-title">Connect to Router</h3>
+          <div class="form-grid">
+            <label>Controller Address
+              <input id="ub-host" class="text-input" placeholder="192.168.1.1 or unifi.local" />
+            </label>
+            <label>Username <input id="ub-user" class="text-input" placeholder="admin" /></label>
+            <label>Password <input id="ub-pass" class="text-input" type="password" placeholder="password" /></label>
+          </div>
+          <button id="btn-ub-connect" class="btn-primary">Connect</button>
+          <div id="ub-status" class="status-line hidden"></div>
+        </div>
+
+        <div id="ubiquiti-dashboard" class="hidden">
+          <div class="stats-row">
+            <div class="stat-card" id="stat-clients">
+              <div class="stat-num">–</div>
+              <div class="stat-label">Devices Online</div>
+            </div>
+            <div class="stat-card" id="stat-networks">
+              <div class="stat-num">–</div>
+              <div class="stat-label">Wi-Fi Networks</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Connected Devices</h3>
+            <div id="client-list" class="list-area"></div>
+          </div>
+          <button id="btn-ub-refresh" class="btn-ghost">Refresh</button>
+        </div>
+      </section>
+
+      <!-- SETTINGS SCREEN -->
+      <section id="screen-settings" class="screen hidden">
+        <h2 class="section-title">Settings</h2>
+
+        <div class="card">
+          <h3 class="card-title">Updates</h3>
+          <div id="update-status-line" class="status-line"></div>
+          <button id="btn-check-updates" class="btn-secondary">Check for Updates Now</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Contact Info</h3>
+          <p class="card-desc">Alec's email for the "Contact Alec" reports.</p>
+          <input id="alec-email" class="text-input" type="email" placeholder="alec@example.com" />
+          <button id="btn-save-email" class="btn-secondary">Save</button>
+        </div>
+
+        <div class="card about-card">
+          <div class="about-row">
+            <span>Home Helper</span>
+            <span id="app-version" class="version-chip">v1.0.0</span>
+          </div>
+          <p class="card-desc">Built by Alec — so you never have to call him for internet problems 😄</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Contact Alec modal (overlay) -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal">
+      <div class="modal-icon">🆘</div>
+      <h2 class="modal-title">Call or Text Alec!</h2>
+      <p class="modal-body" id="modal-message"></p>
+      <div id="modal-details" class="code-block"></div>
+      <div class="modal-actions">
+        <button id="modal-copy" class="btn-secondary">Copy Details</button>
+        <button id="modal-email" class="btn-primary">Email Alec</button>
+        <button id="modal-close" class="btn-ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
