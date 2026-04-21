@@ -1,6 +1,6 @@
 {
   "name": "home-helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Network troubleshooting helper — built for Mom & Dad by Alec",
   "main": "src/main/index.js",
   "scripts": {
@@ -20,8 +20,10 @@
     "appId": "com.alec.homehelper",
     "productName": "Home Helper",
     "copyright": "Copyright © 2024 Alec Farmer",
+    "afterSign": "scripts/afterSign.js",
     "mac": {
       "category": "public.app-category.utilities",
+      "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "target": [

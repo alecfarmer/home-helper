@@ -16,28 +16,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build DMG (x64 + arm64)
+      - name: Build & ad-hoc sign DMG
         env:
-          # electron-builder uses this token to create the GitHub Release
-          # and upload the DMG automatically
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tell electron-builder not to search for an Apple signing cert
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run build
 
-      - name: Upload artifacts to release
-        # electron-builder --publish always handles this, but this step
-        # gives a visible summary in the Actions UI
-        run: echo "Build complete — DMG uploaded to release by electron-builder"
+      - name: Remove quarantine from built app (extra safety)
+        run: |
+          find dist -name "*.app" -exec xattr -cr {} \; 2>/dev/null || true
+          echo "Quarantine attribute removed from dist apps"
+
+      - name: Show release assets
+        run: ls -lh dist/*.dmg dist/*.zip 2>/dev/null || true
