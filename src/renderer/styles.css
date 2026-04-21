@@ -60,6 +60,19 @@ body {
   flex-direction: column;
   padding-top: 40px; /* space for traffic-light buttons */
   user-select: none;
+  /* Make the whole sidebar a drag handle so the window can be moved */
+  -webkit-app-region: drag;
+}
+
+/* Interactive elements inside sidebar must opt OUT of dragging */
+.nav-item,
+.nav-item *,
+#wifi-badge,
+button,
+input,
+select,
+a {
+  -webkit-app-region: no-drag;
 }
 
 #sidebar-header {

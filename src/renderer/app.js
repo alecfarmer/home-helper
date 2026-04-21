@@ -56,27 +56,44 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
-/* ── Wi-Fi Status Badge ────────────────────────────────── */
+/* ── Connection Status Badge ───────────────────────────── */
 async function refreshWifiStatus() {
   try {
-    const wifi = await window.api.getCurrentWifi();
+    // Check both Wi-Fi and Ethernet in parallel
+    const [wifi, hasEthernet] = await Promise.all([
+      window.api.getCurrentWifi(),
+      window.api.checkEthernet(),
+    ]);
     state.currentWifi = wifi;
+
     const badge = $('wifi-badge');
+    const chip = $('home-current-wifi');
+
     if (wifi) {
       badge.textContent = `📶 ${wifi}`;
       badge.style.color = '#4ADE80';
+      if (chip) {
+        chip.textContent = `Wi-Fi: ${wifi}`;
+        chip.className = 'status-chip connected';
+      }
+    } else if (hasEthernet) {
+      badge.textContent = '🔌 Ethernet';
+      badge.style.color = '#4ADE80';
+      if (chip) {
+        chip.textContent = 'Connected via Ethernet cable';
+        chip.className = 'status-chip connected';
+      }
     } else {
-      badge.textContent = '📵 No Wi-Fi';
+      badge.textContent = '📵 No Connection';
       badge.style.color = '#F87171';
-    }
-
-    const chip = $('home-current-wifi');
-    if (chip) {
-      chip.textContent = wifi ? `Connected to: ${wifi}` : 'Not connected to Wi-Fi';
-      chip.className = `status-chip ${wifi ? 'connected' : 'disconnected'}`;
+      if (chip) {
+        chip.textContent = 'Not connected to internet';
+        chip.className = 'status-chip disconnected';
+      }
     }
   } catch {
-    $('wifi-badge').textContent = '📵 No Wi-Fi';
+    const badge = $('wifi-badge');
+    if (badge) { badge.textContent = '📵 No Connection'; badge.style.color = '#F87171'; }
   }
 }
 

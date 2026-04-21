@@ -58,15 +58,23 @@ async function scanAvailableNetworks() {
   // Try airport CLI first (works pre-Sonoma 14.4)
   try {
     const { stdout } = await execAsync(`${AIRPORT} -s`, { timeout: 10000 });
-    if (stdout.trim().length > 0) {
-      return parseAirportOutput(stdout);
-    }
+    const parsed = parseAirportOutput(stdout);
+    if (parsed.length > 0) return parsed;
   } catch { /* fall through */ }
 
-  // Fall back to system_profiler (slower but works on Sonoma)
+  // Fall back to system_profiler -json (works on Sonoma+)
+  try {
+    const { stdout } = await execAsync(
+      'system_profiler SPAirPortDataType -json', { timeout: 15000 }
+    );
+    const parsed = parseSystemProfilerJson(stdout);
+    if (parsed.length > 0) return parsed;
+  } catch { /* fall through */ }
+
+  // Last resort: plain text system_profiler
   try {
     const { stdout } = await execAsync('system_profiler SPAirPortDataType', { timeout: 15000 });
-    return parseSystemProfiler(stdout);
+    return parseSystemProfilerText(stdout);
   } catch {
     return [];
   }
@@ -76,19 +84,46 @@ function parseAirportOutput(stdout) {
   const lines = stdout.split('\n').slice(1);
   return lines
     .map(line => {
-      const parts = line.trim().split(/\s{2,}/);
-      if (parts.length < 2) return null;
-      return { ssid: parts[0], signal: parts[2] || '' };
+      // airport -s columns: SSID  BSSID  RSSI  CHANNEL  HT  CC  SECURITY
+      // SSID can contain spaces so we match from the right on fixed-width fields
+      const match = line.match(/^(.+?)\s{2,}([0-9a-f:]{17})\s+(-\d+)/i);
+      if (!match) return null;
+      return { ssid: match[1].trim(), signal: match[3] };
     })
-    .filter(Boolean);
+    .filter(n => n && n.ssid.length > 0);
 }
 
-function parseSystemProfiler(stdout) {
+function parseSystemProfilerJson(stdout) {
+  try {
+    const data = JSON.parse(stdout);
+    const airports = data?.SPAirPortDataType ?? [];
+    const networks = [];
+    for (const iface of airports) {
+      const other = iface?.spairport_airport_other_local_wireless_networks ?? [];
+      for (const net of other) {
+        const ssid = net?._name;
+        const signal = net?.spairport_signal_noise ?? '';
+        if (ssid) networks.push({ ssid, signal: String(signal) });
+      }
+    }
+    return networks;
+  } catch {
+    return [];
+  }
+}
+
+function parseSystemProfilerText(stdout) {
   const networks = [];
-  const matches = stdout.matchAll(/^\s{12}(.+):$/gm);
+  // Match lines like "          MyNetwork:" with 10 spaces indent (Other Local Wi-Fi Networks section)
+  const inSection = stdout.includes('Other Local Wi-Fi Networks');
+  if (!inSection) return [];
+  const sectionText = stdout.split('Other Local Wi-Fi Networks')[1] || '';
+  const matches = sectionText.matchAll(/^\s{10}([^:\n]+):\s*$/gm);
   for (const match of matches) {
     const ssid = match[1].trim();
-    if (ssid && !ssid.includes(':')) networks.push({ ssid, signal: '' });
+    if (ssid && ssid.length > 0 && ssid.length < 64) {
+      networks.push({ ssid, signal: '' });
+    }
   }
   return networks;
 }
