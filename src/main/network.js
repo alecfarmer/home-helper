@@ -281,7 +281,27 @@ async function runFullDiagnostic(onStep) {
   step('dns', 'Website names (DNS)', dnsResult.success ? 'success' : 'warn',
     dnsResult.success ? 'Websites should load normally' : 'DNS may be slow — pages might load slowly');
 
-  results.overallSuccess = true;
+  // 6. ACAC server check (vm.acac.com)
+  onStep?.({ id: 'acac', label: 'Checking ACAC server (vm.acac.com)...', status: 'running' });
+  const acacResult = await ping('vm.acac.com', 3);
+  const dnsResolved = !acacResult.output.includes('cannot resolve') &&
+                      !acacResult.output.includes('Name or service not known') &&
+                      !acacResult.output.includes('nodename nor servname');
+  if (acacResult.success) {
+    step('acac', 'ACAC server', 'success',
+      `ACAC server reachable (${acacResult.avgMs?.toFixed(0) ?? '?'}ms)`);
+  } else if (!dnsResolved) {
+    step('acac', 'ACAC server', 'fail', 'vm.acac.com does not resolve — DNS issue or server is down');
+    results.failureReason = 'acac_dns_fail';
+    results.acacFailed = true;
+  } else {
+    step('acac', 'ACAC server', 'fail', 'vm.acac.com is unreachable — server may be down');
+    results.failureReason = 'acac_unreachable';
+    results.acacFailed = true;
+  }
+
+  // Overall success: internet is working even if ACAC is down
+  results.overallSuccess = !results.acacFailed;
   return results;
 }
 

@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('api', {
   // Updates
   checkForUpdates: () => ipcRenderer.invoke('updater:check-now'),
   getAppVersion: () => ipcRenderer.invoke('app:version'),
+  launchApp: name => ipcRenderer.invoke('app:launch', name),
 
   // Event listeners
   on: (channel, cb) => {

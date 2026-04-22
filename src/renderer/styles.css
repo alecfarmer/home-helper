@@ -359,6 +359,31 @@ button { cursor: pointer; border: none; font-family: inherit; transition: all 0.
 }
 .text-input:focus { border-color: var(--blue); }
 
+/* ── UID Enterprise Launch Button ──────────────────────── */
+.btn-uid-enterprise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  padding: 16px 24px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #0559C8 0%, #0066FF 100%);
+  color: #FFF;
+  font-size: 17px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(5,89,200,.4);
+  transition: all 0.15s;
+  letter-spacing: -0.2px;
+}
+.btn-uid-enterprise:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(5,89,200,.5); }
+.btn-uid-enterprise:active { transform: scale(0.98); }
+.btn-uid-enterprise:disabled { opacity: 0.7; cursor: default; transform: none; }
+
 .input-row {
   display: flex;
   gap: 10px;

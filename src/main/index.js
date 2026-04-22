@@ -85,3 +85,13 @@ ipcMain.handle('ubiquiti:test', () => ubiquiti.testConnection());
 
 ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('updater:check-now', () => checkNow());
+
+// Launch a named macOS application (e.g. "UID Enterprise")
+ipcMain.handle('app:launch', (_, appName) => {
+  const { exec } = require('child_process');
+  const safe = appName.replace(/[";|&$`\\]/g, '');
+  exec(`open -a "${safe}"`, err => {
+    if (err) console.warn(`Could not open ${safe}:`, err.message);
+  });
+  return true;
+});

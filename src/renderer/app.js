@@ -211,14 +211,45 @@ function updateStepDOM(step) {
 
 function showFailure(reason, steps) {
   show('home-failure');
+
   const messages = {
     no_network: "I couldn't find any of your usual Wi-Fi networks nearby. The Wi-Fi router might be off.",
     router_unreachable: "I connected to Wi-Fi but your router isn't responding. Try unplugging it for 30 seconds and plugging it back in.",
     no_internet: "Your router is working, but there's no internet signal coming into the house. Your internet provider might be having an outage.",
+    acac_dns_fail: "Your internet is working, but I can't find the ACAC server (vm.acac.com). The server name isn't resolving — this could be a DNS issue or the server is offline.",
+    acac_unreachable: "Your internet is working, but the ACAC server (vm.acac.com) isn't responding. The server may be down or blocked.",
     unexpected_error: "Something unexpected went wrong while checking your connection.",
   };
 
   $('failure-message').textContent = messages[reason] || "I wasn't able to fix the problem automatically.";
+
+  // Show UID Enterprise launch button for ACAC-specific failures
+  const isAcacFailure = reason === 'acac_dns_fail' || reason === 'acac_unreachable';
+  let uidBtn = $('btn-open-uid');
+
+  if (isAcacFailure) {
+    if (!uidBtn) {
+      uidBtn = document.createElement('button');
+      uidBtn.id = 'btn-open-uid';
+      uidBtn.className = 'btn-uid-enterprise';
+      uidBtn.innerHTML = '🔐 Open UID Enterprise';
+      uidBtn.addEventListener('click', () => {
+        window.api.launchApp('UID Enterprise');
+        uidBtn.textContent = '✅ UID Enterprise opening...';
+        uidBtn.disabled = true;
+        setTimeout(() => {
+          uidBtn.innerHTML = '🔐 Open UID Enterprise';
+          uidBtn.disabled = false;
+        }, 3000);
+      });
+      // Insert before the contact box
+      const contactBox = $('contact-alec-box');
+      contactBox.parentNode.insertBefore(uidBtn, contactBox);
+    }
+    uidBtn.style.display = 'flex';
+  } else if (uidBtn) {
+    uidBtn.style.display = 'none';
+  }
 
   const report = buildContactMessage(reason, steps || diagSteps);
   $('contact-details').textContent = report;
