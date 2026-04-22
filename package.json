@@ -1,6 +1,6 @@
 {
   "name": "home-helper",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Network troubleshooting helper — built for Mom & Dad by Alec",
   "main": "src/main/index.js",
   "scripts": {

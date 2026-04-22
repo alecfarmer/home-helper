@@ -74,7 +74,8 @@ async function scanAvailableNetworks() {
   // Last resort: plain text system_profiler
   try {
     const { stdout } = await execAsync('system_profiler SPAirPortDataType', { timeout: 15000 });
-    return parseSystemProfilerText(stdout);
+    const parsed = parseSystemProfilerText(stdout);
+    return parsed.filter(n => n.ssid && n.ssid.length > 0);
   } catch {
     return [];
   }
@@ -85,8 +86,9 @@ function parseAirportOutput(stdout) {
   return lines
     .map(line => {
       // airport -s columns: SSID  BSSID  RSSI  CHANNEL  HT  CC  SECURITY
-      // SSID can contain spaces so we match from the right on fixed-width fields
-      const match = line.match(/^(.+?)\s{2,}([0-9a-f:]{17})\s+(-\d+)/i);
+      // The BSSID is a fixed-width MAC address — anchor on it from the right so
+      // that SSIDs containing spaces are captured in full by the greedy (.+).
+      const match = line.match(/^(.+)\s+([0-9a-f]{2}(?::[0-9a-f]{2}){5})\s+(-\d+)/i);
       if (!match) return null;
       return { ssid: match[1].trim(), signal: match[3] };
     })
@@ -96,14 +98,25 @@ function parseAirportOutput(stdout) {
 function parseSystemProfilerJson(stdout) {
   try {
     const data = JSON.parse(stdout);
-    const airports = data?.SPAirPortDataType ?? [];
+    const entries = data?.SPAirPortDataType ?? [];
     const networks = [];
-    for (const iface of airports) {
-      const other = iface?.spairport_airport_other_local_wireless_networks ?? [];
-      for (const net of other) {
-        const ssid = net?._name;
-        const signal = net?.spairport_signal_noise ?? '';
-        if (ssid) networks.push({ ssid, signal: String(signal) });
+    for (const entry of entries) {
+      // Networks are nested: SPAirPortDataType[].spairport_airport_interfaces[].spairport_airport_other_local_wireless_networks[]
+      const interfaces = entry?.spairport_airport_interfaces ?? [];
+      for (const iface of interfaces) {
+        const other = iface?.spairport_airport_other_local_wireless_networks ?? [];
+        for (const net of other) {
+          const rawName = net?._name ?? '';
+          // macOS Sonoma+ redacts SSIDs to '<redacted>' for privacy; use channel/security as label
+          const isRedacted = rawName === '<redacted>' || rawName === '';
+          const channel = net?.spairport_network_channel ?? '';
+          const security = net?.spairport_security_mode?.replace('spairport_security_mode_', '').replace(/_/g, '-').toUpperCase() ?? '';
+          const signal = net?.spairport_signal_noise ?? '';
+          const ssid = isRedacted
+            ? `Hidden network (${channel}${security ? ', ' + security : ''})`
+            : rawName;
+          if (ssid) networks.push({ ssid, signal: String(signal), hidden: isRedacted });
+        }
       }
     }
     return networks;

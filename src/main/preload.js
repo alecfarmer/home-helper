@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('api', {
   // Updates
   checkForUpdates: () => ipcRenderer.invoke('updater:check-now'),
   getAppVersion: () => ipcRenderer.invoke('app:version'),
+  getAlecEmail: () => ipcRenderer.invoke('app:alec-email'),
   launchApp: name => ipcRenderer.invoke('app:launch', name),
 
   // Event listeners

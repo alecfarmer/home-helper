@@ -24,9 +24,6 @@
         <li class="nav-item" data-screen="vpn">
           <span class="nav-icon">🔒</span> VPN
         </li>
-        <li class="nav-item" data-screen="ubiquiti">
-          <span class="nav-icon">📡</span> Network Map
-        </li>
         <li class="nav-item" data-screen="settings">
           <span class="nav-icon">⚙️</span> Settings
         </li>
@@ -103,16 +100,6 @@
           <div id="wifi-list" class="list-area"></div>
         </div>
 
-        <div class="card">
-          <h3 class="card-title">Quick Tests</h3>
-          <div class="quick-tests">
-            <button class="btn-test" data-host="1.1.1.1" data-label="Cloudflare">🟡 Cloudflare</button>
-            <button class="btn-test" data-host="8.8.8.8" data-label="Google DNS">🟡 Google DNS</button>
-            <button class="btn-test" data-host="google.com" data-label="Google">🟡 Google</button>
-            <button class="btn-test" data-host="apple.com" data-label="Apple">🟡 Apple</button>
-            <button class="btn-test" data-host="vm.acac.com" data-label="ACAC Server">🟡 ACAC Server</button>
-          </div>
-        </div>
       </section>
 
       <!-- VPN SCREEN -->
@@ -146,43 +133,6 @@
         </div>
       </section>
 
-      <!-- UBIQUITI SCREEN -->
-      <section id="screen-ubiquiti" class="screen hidden">
-        <h2 class="section-title">Network Map</h2>
-        <p class="section-desc">See what's connected to your Ubiquiti router.</p>
-
-        <div id="ubiquiti-setup" class="card">
-          <h3 class="card-title">Connect to Router</h3>
-          <div class="form-grid">
-            <label>Controller Address
-              <input id="ub-host" class="text-input" placeholder="192.168.1.1 or unifi.local" />
-            </label>
-            <label>Username <input id="ub-user" class="text-input" placeholder="admin" /></label>
-            <label>Password <input id="ub-pass" class="text-input" type="password" placeholder="password" /></label>
-          </div>
-          <button id="btn-ub-connect" class="btn-primary">Connect</button>
-          <div id="ub-status" class="status-line hidden"></div>
-        </div>
-
-        <div id="ubiquiti-dashboard" class="hidden">
-          <div class="stats-row">
-            <div class="stat-card" id="stat-clients">
-              <div class="stat-num">–</div>
-              <div class="stat-label">Devices Online</div>
-            </div>
-            <div class="stat-card" id="stat-networks">
-              <div class="stat-num">–</div>
-              <div class="stat-label">Wi-Fi Networks</div>
-            </div>
-          </div>
-          <div class="card">
-            <h3 class="card-title">Connected Devices</h3>
-            <div id="client-list" class="list-area"></div>
-          </div>
-          <button id="btn-ub-refresh" class="btn-ghost">Refresh</button>
-        </div>
-      </section>
-
       <!-- SETTINGS SCREEN -->
       <section id="screen-settings" class="screen hidden">
         <h2 class="section-title">Settings</h2>
@@ -191,13 +141,6 @@
           <h3 class="card-title">Updates</h3>
           <div id="update-status-line" class="status-line"></div>
           <button id="btn-check-updates" class="btn-secondary">Check for Updates Now</button>
-        </div>
-
-        <div class="card">
-          <h3 class="card-title">Contact Info</h3>
-          <p class="card-desc">Alec's email for the "Contact Alec" reports.</p>
-          <input id="alec-email" class="text-input" type="email" placeholder="alec@example.com" />
-          <button id="btn-save-email" class="btn-secondary">Save</button>
         </div>
 
         <div class="card about-card">
@@ -209,6 +152,20 @@
         </div>
       </section>
 
+      <!-- Persistent Status Bar -->
+      <div id="status-bar">
+        <div class="sb-item" id="sb-cloudflare">
+          <span class="sb-dot" id="sb-cloudflare-dot"></span>
+          <span class="sb-label">Cloudflare</span>
+          <span class="sb-ms" id="sb-cloudflare-ms">—</span>
+        </div>
+        <div class="sb-sep"></div>
+        <div class="sb-item" id="sb-ubiquiti">
+          <span class="sb-dot" id="sb-ubiquiti-dot"></span>
+          <span class="sb-label">Ubiquiti</span>
+          <span class="sb-ms" id="sb-ubiquiti-ms">—</span>
+        </div>
+      </div>
     </main>
   </div>
 

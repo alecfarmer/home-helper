@@ -28,10 +28,10 @@ function initUpdater(mainWindow) {
     });
   });
 
-  autoUpdater.on('update-not-available', info => {
+  autoUpdater.on('update-not-available', () => {
     mainWindow.webContents.send('update-status', {
       type: 'current',
-      message: `You have the latest version (${info.version}).`,
+      message: `You have the latest version (${app.getVersion()}).`,
     });
   });
 

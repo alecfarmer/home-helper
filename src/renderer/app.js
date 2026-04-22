@@ -4,8 +4,6 @@ const state = {
   diagRunning: false,
   currentWifi: null,
   vpnConfigs: [],     // configs stored in app
-  alecEmail: localStorage.getItem('alecEmail') || '',
-  ubiquitiConfig: JSON.parse(localStorage.getItem('ubiquitiConfig') || 'null'),
 };
 
 /* ── Helpers ───────────────────────────────────────────── */
@@ -51,7 +49,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const screen = item.dataset.screen;
     setScreen(screen);
     if (screen === 'vpn') loadVpnScreen();
-    if (screen === 'ubiquiti') initUbiquitiScreen();
     if (screen === 'settings') loadSettings();
   });
 });
@@ -255,10 +252,10 @@ function showFailure(reason, steps) {
   $('contact-details').textContent = report;
 }
 
-function emailAlec() {
-  const email = state.alecEmail || 'alec@example.com';
+async function emailAlec() {
+  const email = await window.api.getAlecEmail().catch(() => 'realalecfarmer@gmail.com');
   const subject = encodeURIComponent('Internet Problem — Home Helper Report');
-  const body = encodeURIComponent($('contact-details').textContent || $('modal-details').textContent);
+  const body = encodeURIComponent($('contact-details').textContent || $('modal-details').textContent || '');
   window.open(`mailto:${email}?subject=${subject}&body=${body}`);
 }
 
@@ -306,13 +303,15 @@ async function scanWifi() {
     list.innerHTML = '<div class="list-item">No networks found.</div>';
   } else {
     available.forEach(net => {
-      const isSaved = savedSet.has(net.ssid);
+      const isSaved = !net.hidden && savedSet.has(net.ssid);
       const item = document.createElement('div');
       item.className = 'list-item';
+      const subLabel = isSaved ? 'Saved network' : (net.hidden ? 'Privacy-hidden network' : 'Nearby network');
+      const displayName = net.ssid || '—';
       item.innerHTML = `
         <div class="list-item-left">
-          <div class="list-item-name">${isSaved ? '⭐ ' : ''}${net.ssid}</div>
-          <div class="list-item-sub">${isSaved ? 'Saved network' : 'Unknown network'}${net.signal ? ` · Signal: ${net.signal}` : ''}</div>
+          <div class="list-item-name">${isSaved ? '⭐ ' : ''}${displayName}</div>
+          <div class="list-item-sub">${subLabel}${net.signal ? ` · ${net.signal}` : ''}</div>
         </div>
         ${isSaved ? `<button class="btn-secondary" onclick="connectToWifi('${net.ssid.replace(/'/g, "\\'")}')">Connect</button>` : ''}`;
       list.appendChild(item);
@@ -353,20 +352,6 @@ window.connectToWifi = async function(ssid) {
     toast(`Failed to connect to ${ssid}`, 'error');
   }
 };
-
-// Quick test buttons
-document.querySelectorAll('.btn-test').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const host = btn.dataset.host;
-    btn.textContent = `⏳ ${btn.dataset.label}`;
-    btn.disabled = true;
-
-    const result = await window.api.ping(host, 3);
-    btn.className = `btn-test ${result.success ? 'pass' : 'fail'}`;
-    btn.textContent = `${result.success ? '✅' : '❌'} ${btn.dataset.label}${result.avgMs ? ` (${result.avgMs.toFixed(0)}ms)` : ''}`;
-    btn.disabled = false;
-  });
-});
 
 /* ── VPN SCREEN ────────────────────────────────────────── */
 $('btn-add-vpn').addEventListener('click', () => {
@@ -465,93 +450,36 @@ window.removeVpnFromSystem = async function(name) {
   loadVpnScreen();
 };
 
-/* ── UBIQUITI SCREEN ───────────────────────────────────── */
-function initUbiquitiScreen() {
-  if (state.ubiquitiConfig) {
-    $('ub-host').value = state.ubiquitiConfig.host || '';
-    $('ub-user').value = state.ubiquitiConfig.username || '';
+/* ── PERSISTENT STATUS BAR ─────────────────────────────── */
+async function updateStatusBar() {
+  const hosts = [
+    { id: 'cloudflare', host: '1.1.1.1', label: 'Cloudflare' },
+    { id: 'ubiquiti',   host: 'ping.ubnt.com', label: 'Ubiquiti' },
+  ];
+
+  for (const { id, host } of hosts) {
+    const dotEl = $(`sb-${id}-dot`);
+    const msEl  = $(`sb-${id}-ms`);
+    if (!dotEl || !msEl) continue;
+
+    try {
+      const result = await window.api.ping(host, 1);
+      dotEl.className = `sb-dot ${result.success ? 'up' : 'down'}`;
+      msEl.textContent = result.success && result.avgMs != null ? `${Math.round(result.avgMs)}ms` : '✗';
+    } catch {
+      dotEl.className = 'sb-dot down';
+      msEl.textContent = '✗';
+    }
   }
 }
 
-$('btn-ub-connect').addEventListener('click', async () => {
-  const host = $('ub-host').value.trim();
-  const username = $('ub-user').value.trim();
-  const password = $('ub-pass').value.trim();
-
-  if (!host || !username || !password) {
-    showUbiquitiStatus('Please fill in all fields.', 'error');
-    return;
-  }
-
-  $('btn-ub-connect').textContent = 'Connecting…';
-  $('btn-ub-connect').disabled = true;
-
-  const config = { host, username, https: true };
-  state.ubiquitiConfig = { host, username };
-  localStorage.setItem('ubiquitiConfig', JSON.stringify(state.ubiquitiConfig));
-
-  await window.api.ubiquiti.setConfig(config);
-  const loginResult = await window.api.ubiquiti.login(username, password);
-
-  if (loginResult.success) {
-    showUbiquitiStatus('Connected to UniFi controller!', 'success');
-    show('ubiquiti-dashboard');
-    loadUbiquitiData();
-  } else {
-    showUbiquitiStatus(`Connection failed: ${loginResult.error || 'Wrong username or password'}`, 'error');
-  }
-
-  $('btn-ub-connect').textContent = 'Connect';
-  $('btn-ub-connect').disabled = false;
-});
-
-$('btn-ub-refresh')?.addEventListener('click', loadUbiquitiData);
-
-function showUbiquitiStatus(msg, type) {
-  const el = $('ub-status');
-  el.textContent = msg;
-  el.className = `status-line ${type}`;
-  show('ub-status');
-}
-
-async function loadUbiquitiData() {
-  try {
-    const [clients, networks] = await Promise.all([
-      window.api.ubiquiti.getClients(),
-      window.api.ubiquiti.getNetworks(),
-    ]);
-
-    $('stat-clients').querySelector('.stat-num').textContent = clients.length;
-    $('stat-networks').querySelector('.stat-num').textContent = networks.length;
-
-    const list = $('client-list');
-    list.innerHTML = '';
-    clients.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
-      const item = document.createElement('div');
-      item.className = 'list-item';
-      item.innerHTML = `
-        <div class="list-item-left">
-          <div class="list-item-name">📱 ${c.name}</div>
-          <div class="list-item-sub">${c.ip || ''}${c.ssid ? ` · ${c.ssid}` : ''}${c.signal ? ` · Signal: ${c.signal} dBm` : ''}</div>
-        </div>`;
-      list.appendChild(item);
-    });
-  } catch (e) {
-    showUbiquitiStatus(`Error loading data: ${e.message}`, 'error');
-  }
-}
+updateStatusBar();
+setInterval(updateStatusBar, 60000);
 
 /* ── SETTINGS SCREEN ───────────────────────────────────── */
 function loadSettings() {
-  $('alec-email').value = state.alecEmail;
   window.api.getAppVersion().then(v => { $('app-version').textContent = `v${v}`; });
 }
-
-$('btn-save-email').addEventListener('click', () => {
-  state.alecEmail = $('alec-email').value.trim();
-  localStorage.setItem('alecEmail', state.alecEmail);
-  toast('Email saved!', 'success');
-});
 
 $('btn-check-updates').addEventListener('click', async () => {
   const btn = $('btn-check-updates');

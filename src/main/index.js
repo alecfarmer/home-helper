@@ -5,6 +5,8 @@ const vpn = require('./vpn');
 const ubiquiti = require('./ubiquiti');
 const { initUpdater, checkNow } = require('./updater');
 
+const ALEC_EMAIL = 'realalecfarmer@gmail.com';
+
 let mainWindow;
 
 function createWindow() {
@@ -84,6 +86,7 @@ ipcMain.handle('ubiquiti:test', () => ubiquiti.testConnection());
 // ── App IPC ───────────────────────────────────────────────────────────────────
 
 ipcMain.handle('app:version', () => app.getVersion());
+ipcMain.handle('app:alec-email', () => ALEC_EMAIL);
 ipcMain.handle('updater:check-now', () => checkNow(mainWindow));
 
 // Launch a named macOS application (e.g. "UID Enterprise")
