@@ -11,15 +11,11 @@ contextBridge.exposeInMainWorld('api', {
   getGateway: () => ipcRenderer.invoke('net:gateway'),
   runFullDiagnostic: () => ipcRenderer.invoke('net:full-diagnostic'),
 
-  // VPN
-  loadVpnConfigs: () => ipcRenderer.invoke('vpn:load'),
-  saveVpnConfigs: configs => ipcRenderer.invoke('vpn:save', configs),
-  listSystemVpns: () => ipcRenderer.invoke('vpn:list-system'),
-  connectVpn: name => ipcRenderer.invoke('vpn:connect', name),
-  disconnectVpn: name => ipcRenderer.invoke('vpn:disconnect', name),
-  getVpnStatus: name => ipcRenderer.invoke('vpn:status', name),
-  installVpnConfig: config => ipcRenderer.invoke('vpn:install', config),
-  removeVpnFromSystem: name => ipcRenderer.invoke('vpn:remove-system', name),
+  // Home VPN (WireGuard, pre-configured)
+  getHomeVpnStatus: () => ipcRenderer.invoke('vpn:home-status'),
+  connectHomeVpn: () => ipcRenderer.invoke('vpn:home-connect'),
+  disconnectHomeVpn: () => ipcRenderer.invoke('vpn:home-disconnect'),
+  installHomeVpn: () => ipcRenderer.invoke('vpn:home-install'),
 
   // Ubiquiti
   ubiquiti: {

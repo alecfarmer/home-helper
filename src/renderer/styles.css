@@ -624,6 +624,42 @@ button:active {
   padding-top: 24px;
 }
 
+/* Home VPN single-card layout */
+.vpn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vpn-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.vpn-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.vpn-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+#vpn-home-status {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+#vpn-setup-card .card-desc {
+  margin-bottom: 8px;
+}
+
 .vpn-card {
   display: flex;
   align-items: center;

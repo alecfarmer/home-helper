@@ -104,31 +104,36 @@
 
       <!-- VPN SCREEN -->
       <section id="screen-vpn" class="screen hidden">
-        <h2 class="section-title">VPN Connections</h2>
-        <p class="section-desc">Securely connect to Alec's network from anywhere.</p>
+        <h2 class="section-title">VPN & Remote Access</h2>
+        <p class="section-desc">Required to connect to ACAC services from outside the building.</p>
 
-        <div id="vpn-list" class="card-list"></div>
-
-        <button id="btn-add-vpn" class="btn-secondary">+ Add VPN</button>
-
-        <div id="vpn-form" class="card hidden">
-          <h3 class="card-title">New VPN Connection</h3>
-          <div class="form-grid">
-            <label>Name <input id="vpn-name" class="text-input" placeholder="Home VPN" /></label>
-            <label>Server <input id="vpn-server" class="text-input" placeholder="vpn.example.com" /></label>
-            <label>Username <input id="vpn-user" class="text-input" placeholder="username" /></label>
-            <label>Password <input id="vpn-pass" class="text-input" type="password" placeholder="password" /></label>
-            <label>Type
-              <select id="vpn-type" class="text-input">
-                <option value="IKEv2">IKEv2 (recommended)</option>
-                <option value="L2TP">L2TP/IPSec</option>
-              </select>
-            </label>
-            <label id="vpn-secret-row">Shared Secret <input id="vpn-secret" class="text-input" type="password" placeholder="shared secret" /></label>
+        <!-- Home VPN card -->
+        <div class="card" id="vpn-home-card">
+          <div class="vpn-row">
+            <div class="vpn-info">
+              <div class="vpn-name">Home VPN</div>
+              <div class="vpn-meta" id="vpn-home-meta">Checking status…</div>
+            </div>
+            <button id="btn-vpn-toggle" class="btn-primary" disabled>Connect</button>
           </div>
-          <div class="form-actions">
-            <button id="btn-save-vpn" class="btn-primary">Save & Install</button>
-            <button id="btn-cancel-vpn" class="btn-ghost">Cancel</button>
+          <div id="vpn-home-status" class="status-line hidden"></div>
+        </div>
+
+        <!-- Shown only when WireGuard is not yet installed -->
+        <div class="card hidden" id="vpn-setup-card">
+          <h3 class="card-title">VPN Setup Required</h3>
+          <p class="card-desc">WireGuard must be installed from the Mac App Store before the Home VPN can be activated.</p>
+          <button id="btn-vpn-install" class="btn-secondary">Set Up Home VPN</button>
+        </div>
+
+        <!-- Omnessa Horizon -->
+        <div class="card" id="horizon-card">
+          <h3 class="card-title">Omnessa Horizon</h3>
+          <p class="card-desc">Your remote work desktop at vm.acac.com. Connect the VPN above first.</p>
+          <div id="horizon-status" class="status-line hidden"></div>
+          <div class="toolbar">
+            <button id="btn-check-horizon" class="btn-secondary">Check Connection</button>
+            <button id="btn-launch-horizon" class="btn-primary hidden">Open Omnessa Horizon</button>
           </div>
         </div>
       </section>

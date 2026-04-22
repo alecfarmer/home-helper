@@ -1,6 +1,6 @@
 {
   "name": "home-helper",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Network troubleshooting helper — built for Mom & Dad by Alec",
   "main": "src/main/index.js",
   "scripts": {
@@ -21,6 +21,10 @@
     "productName": "Home Helper",
     "copyright": "Copyright © 2024 Alec Farmer",
     "afterSign": "scripts/afterSign.js",
+    "icon": "build/icon.png",
+    "extraResources": [
+      { "from": "src/assets/home-vpn.conf", "to": "home-vpn.conf" }
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "identity": null,

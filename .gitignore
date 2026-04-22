@@ -3,3 +3,5 @@ dist/
 out/
 *.log
 .DS_Store
+# VPN config contains private key — never commit
+src/assets/home-vpn.conf

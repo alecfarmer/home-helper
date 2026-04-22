@@ -3,7 +3,6 @@ const state = {
   currentScreen: 'home',
   diagRunning: false,
   currentWifi: null,
-  vpnConfigs: [],     // configs stored in app
 };
 
 /* ── Helpers ───────────────────────────────────────────── */
@@ -213,8 +212,8 @@ function showFailure(reason, steps) {
     no_network: "I couldn't find any of your usual Wi-Fi networks nearby. The Wi-Fi router might be off.",
     router_unreachable: "I connected to Wi-Fi but your router isn't responding. Try unplugging it for 30 seconds and plugging it back in.",
     no_internet: "Your router is working, but there's no internet signal coming into the house. Your internet provider might be having an outage.",
-    acac_dns_fail: "Your internet is working, but I can't find the ACAC server (vm.acac.com). The server name isn't resolving — this could be a DNS issue or the server is offline.",
-    acac_unreachable: "Your internet is working, but the ACAC server (vm.acac.com) isn't responding. The server may be down or blocked.",
+    acac_dns_fail: "Your internet is working but I can't reach the ACAC server (vm.acac.com). Try connecting the Home VPN on the VPN tab, then run Fix My Internet again.",
+    acac_unreachable: "Your internet is working but the ACAC server (vm.acac.com) isn't responding. Make sure the Home VPN is connected, then try again.",
     unexpected_error: "Something unexpected went wrong while checking your connection.",
   };
 
@@ -228,16 +227,11 @@ function showFailure(reason, steps) {
     if (!uidBtn) {
       uidBtn = document.createElement('button');
       uidBtn.id = 'btn-open-uid';
-      uidBtn.className = 'btn-uid-enterprise';
-      uidBtn.innerHTML = '🔐 Open UID Enterprise';
+      uidBtn.className = 'btn-primary';
+      uidBtn.innerHTML = '🔒 Connect Home VPN';
       uidBtn.addEventListener('click', () => {
-        window.api.launchApp('UID Enterprise');
-        uidBtn.textContent = '✅ UID Enterprise opening...';
-        uidBtn.disabled = true;
-        setTimeout(() => {
-          uidBtn.innerHTML = '🔐 Open UID Enterprise';
-          uidBtn.disabled = false;
-        }, 3000);
+        setScreen('vpn');
+        loadVpnScreen();
       });
       // Insert before the contact box
       const contactBox = $('contact-alec-box');
@@ -354,101 +348,141 @@ window.connectToWifi = async function(ssid) {
 };
 
 /* ── VPN SCREEN ────────────────────────────────────────── */
-$('btn-add-vpn').addEventListener('click', () => {
-  show('vpn-form');
-  $('btn-add-vpn').classList.add('hidden');
-});
-
-$('btn-cancel-vpn').addEventListener('click', () => {
-  hide('vpn-form');
-  show('btn-add-vpn');
-});
-
-$('vpn-type').addEventListener('change', () => {
-  const isL2TP = $('vpn-type').value === 'L2TP';
-  $('vpn-secret-row').style.display = isL2TP ? 'block' : 'none';
-});
-
-$('btn-save-vpn').addEventListener('click', async () => {
-  const config = {
-    name: $('vpn-name').value.trim(),
-    server: $('vpn-server').value.trim(),
-    username: $('vpn-user').value.trim(),
-    password: $('vpn-pass').value.trim(),
-    type: $('vpn-type').value,
-    sharedSecret: $('vpn-secret').value.trim(),
-  };
-
-  if (!config.name || !config.server || !config.username) {
-    toast('Please fill in Name, Server, and Username.', 'error');
-    return;
-  }
-
-  state.vpnConfigs.push(config);
-  await window.api.saveVpnConfigs(state.vpnConfigs);
-
-  const result = await window.api.installVpnConfig(config);
-  toast(result.note || 'VPN saved! Follow the System Settings prompt.', 'success');
-
-  // Clear form
-  ['vpn-name','vpn-server','vpn-user','vpn-pass','vpn-secret'].forEach(id => $( id ).value = '');
-  hide('vpn-form');
-  show('btn-add-vpn');
-  loadVpnScreen();
-});
-
 async function loadVpnScreen() {
-  state.vpnConfigs = await window.api.loadVpnConfigs() || [];
-  const systemVpns = await window.api.listSystemVpns();
-  const list = $('vpn-list');
-  list.innerHTML = '';
+  await refreshHomeVpnStatus();
+}
 
-  if (!state.vpnConfigs.length && !systemVpns.length) {
-    list.innerHTML = '<div class="card"><p class="card-desc">No VPN connections saved yet. Click "+ Add VPN" to get started.</p></div>';
-    return;
-  }
+async function refreshHomeVpnStatus() {
+  const metaEl   = $('vpn-home-meta');
+  const toggleBtn = $('btn-vpn-toggle');
+  const setupCard = $('vpn-setup-card');
+  const statusLine = $('vpn-home-status');
 
-  // Show system VPNs (can connect/disconnect)
-  for (const vpnItem of systemVpns) {
-    const status = await window.api.getVpnStatus(vpnItem.name);
-    const connected = status === 'Connected';
-    const card = document.createElement('div');
-    card.className = 'vpn-card';
-    card.id = `vpn-card-${vpnItem.uuid}`;
-    card.innerHTML = `
-      <div>
-        <div class="vpn-card-name">${vpnItem.name}</div>
-        <div class="vpn-card-meta">${connected ? '🟢 Connected' : '⚪ Disconnected'}</div>
-      </div>
-      <div class="vpn-card-actions">
-        <button class="btn-${connected ? 'ghost' : 'primary'}" onclick="toggleVpn('${vpnItem.name}', ${connected})">
-          ${connected ? 'Disconnect' : 'Connect'}
-        </button>
-        <button class="btn-ghost" onclick="removeVpnFromSystem('${vpnItem.name}')">Remove from Mac</button>
-      </div>`;
-    list.appendChild(card);
+  const s = await window.api.getHomeVpnStatus();
+
+  if (!s.configured) {
+    metaEl.textContent = 'Not set up on this Mac';
+    toggleBtn.disabled = true;
+    toggleBtn.textContent = 'Connect';
+    toggleBtn.className = 'btn-primary';
+    setupCard.classList.remove('hidden');
+  } else {
+    setupCard.classList.add('hidden');
+    statusLine.classList.add('hidden');
+    if (s.connected) {
+      metaEl.textContent = '🟢 Connected';
+      toggleBtn.textContent = 'Disconnect';
+      toggleBtn.disabled = false;
+      toggleBtn.className = 'btn-ghost';
+    } else if (s.connecting) {
+      metaEl.textContent = '🟡 Connecting…';
+      toggleBtn.textContent = 'Connecting…';
+      toggleBtn.disabled = true;
+    } else {
+      metaEl.textContent = '⚪ Disconnected';
+      toggleBtn.textContent = 'Connect';
+      toggleBtn.disabled = false;
+      toggleBtn.className = 'btn-primary';
+    }
   }
 }
 
-window.toggleVpn = async function(name, isConnected) {
-  toast(`${isConnected ? 'Disconnecting' : 'Connecting'} ${name}…`);
-  if (isConnected) {
-    await window.api.disconnectVpn(name);
-    toast(`Disconnected from ${name}`, 'success');
-  } else {
-    const result = await window.api.connectVpn(name);
-    toast(result.success ? `Connected to ${name}!` : `Failed: ${result.error}`, result.success ? 'success' : 'error');
-  }
-  loadVpnScreen();
-};
+$('btn-vpn-toggle').addEventListener('click', async () => {
+  const btn = $('btn-vpn-toggle');
+  const statusLine = $('vpn-home-status');
+  const isConnecting = btn.textContent.trim() === 'Connect';
 
-window.removeVpnFromSystem = async function(name) {
-  if (!confirm(`Remove "${name}" from macOS Network Settings?\n\nCredentials will stay saved in Home Helper so you can reinstall it later.`)) return;
-  const result = await window.api.removeVpnFromSystem(name);
-  toast(result.success ? 'Removed from macOS. Credentials still saved in app.' : `Error: ${result.error}`,
-    result.success ? 'success' : 'error');
-  loadVpnScreen();
-};
+  btn.disabled = true;
+  btn.textContent = isConnecting ? 'Connecting…' : 'Disconnecting…';
+
+  const result = isConnecting
+    ? await window.api.connectHomeVpn()
+    : await window.api.disconnectHomeVpn();
+
+  statusLine.className = 'status-line';
+  statusLine.classList.remove('hidden');
+
+  if (result.success || !isConnecting) {
+    statusLine.textContent = isConnecting ? 'Connected successfully.' : 'Disconnected.';
+    statusLine.classList.add('success');
+  } else {
+    statusLine.textContent = result.error || 'Failed. Try again.';
+    statusLine.classList.add('error');
+  }
+
+  await refreshHomeVpnStatus();
+});
+
+$('btn-vpn-install').addEventListener('click', async () => {
+  const btn = $('btn-vpn-install');
+  const statusLine = $('vpn-home-status');
+  btn.disabled = true;
+  btn.textContent = 'Setting up…';
+
+  const result = await window.api.installHomeVpn();
+
+  statusLine.className = 'status-line';
+  statusLine.classList.remove('hidden');
+
+  if (result.success) {
+    statusLine.textContent = result.note;
+    statusLine.classList.add('success');
+    setTimeout(refreshHomeVpnStatus, 6000);
+  } else {
+    statusLine.textContent = result.error;
+    statusLine.classList.add('error');
+    if (result.needsWireGuard) {
+      // Open Mac App Store page for WireGuard
+      window.open('https://apps.apple.com/us/app/wireguard/id1451685025');
+    }
+  }
+
+  btn.textContent = 'Set Up Home VPN';
+  btn.disabled = false;
+});
+
+/* ── OMNESSA HORIZON ───────────────────────────────────── */
+$('btn-check-horizon').addEventListener('click', async () => {
+  const statusEl  = $('horizon-status');
+  const launchBtn = $('btn-launch-horizon');
+  const checkBtn  = $('btn-check-horizon');
+
+  statusEl.className = 'status-line';
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Checking VPN and server connection…';
+  checkBtn.disabled = true;
+  launchBtn.classList.add('hidden');
+
+  // Step 1: VPN must be connected
+  const vpnState = await window.api.getHomeVpnStatus();
+  if (!vpnState.connected) {
+    statusEl.textContent = 'Home VPN is not connected. Connect it above, then check again.';
+    statusEl.classList.add('error');
+    checkBtn.disabled = false;
+    return;
+  }
+
+  // Step 2: Ping vm.acac.com
+  statusEl.textContent = 'VPN connected — reaching out to vm.acac.com…';
+  const ping = await window.api.ping('vm.acac.com', 3);
+
+  if (ping.success) {
+    statusEl.textContent = `✓ vm.acac.com reachable (${Math.round(ping.avgMs ?? 0)}ms) — ready to connect.`;
+    statusEl.classList.add('success');
+    launchBtn.classList.remove('hidden');
+  } else {
+    statusEl.textContent = 'Cannot reach vm.acac.com. The server may be down or the VPN is not routing correctly.';
+    statusEl.classList.add('error');
+  }
+  checkBtn.disabled = false;
+});
+
+$('btn-launch-horizon').addEventListener('click', () => {
+  // Try all known names for Omnessa/VMware Horizon Client on macOS
+  ['Omnissa Horizon Client', 'Horizon Client', 'VMware Horizon Client'].forEach(name => {
+    window.api.launchApp(name);
+  });
+});
 
 /* ── PERSISTENT STATUS BAR ─────────────────────────────── */
 async function updateStatusBar() {

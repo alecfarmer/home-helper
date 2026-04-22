@@ -64,15 +64,10 @@ ipcMain.handle('net:full-diagnostic', async event => {
 });
 
 // ── VPN IPC ──────────────────────────────────────────────────────────────────
-
-ipcMain.handle('vpn:load', () => vpn.loadCredentials());
-ipcMain.handle('vpn:save', (_, configs) => { vpn.saveCredentials(configs); return true; });
-ipcMain.handle('vpn:list-system', () => vpn.listSystemVpns());
-ipcMain.handle('vpn:connect', (_, name) => vpn.connectVpn(name));
-ipcMain.handle('vpn:disconnect', (_, name) => vpn.disconnectVpn(name));
-ipcMain.handle('vpn:status', (_, name) => vpn.getVpnStatus(name));
-ipcMain.handle('vpn:install', (_, config) => vpn.installVpnConfig(config));
-ipcMain.handle('vpn:remove-system', (_, name) => vpn.removeVpnFromSystem(name));
+ipcMain.handle('vpn:home-status', () => vpn.getHomeVpnStatus());
+ipcMain.handle('vpn:home-connect', () => vpn.connectHomeVpn());
+ipcMain.handle('vpn:home-disconnect', () => vpn.disconnectHomeVpn());
+ipcMain.handle('vpn:home-install', () => vpn.installHomeVpnConfig());
 
 // ── Ubiquiti IPC ─────────────────────────────────────────────────────────────
 
