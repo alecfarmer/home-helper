@@ -417,7 +417,7 @@ $('btn-vpn-install').addEventListener('click', async () => {
   const btn = $('btn-vpn-install');
   const statusLine = $('vpn-home-status');
   btn.disabled = true;
-  btn.textContent = 'Setting up…';
+  btn.textContent = 'Installing… (may take a minute)';
 
   const result = await window.api.installHomeVpn();
 
@@ -425,16 +425,12 @@ $('btn-vpn-install').addEventListener('click', async () => {
   statusLine.classList.remove('hidden');
 
   if (result.success) {
-    statusLine.textContent = result.note;
+    statusLine.textContent = 'Setup complete! You can now connect.';
     statusLine.classList.add('success');
-    setTimeout(refreshHomeVpnStatus, 6000);
+    await refreshHomeVpnStatus();
   } else {
     statusLine.textContent = result.error;
     statusLine.classList.add('error');
-    if (result.needsWireGuard) {
-      // Open Mac App Store page for WireGuard
-      window.open('https://apps.apple.com/us/app/wireguard/id1451685025');
-    }
   }
 
   btn.textContent = 'Set Up Home VPN';
