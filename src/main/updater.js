@@ -1,9 +1,24 @@
 const { autoUpdater } = require('electron-updater');
-const { dialog, BrowserWindow } = require('electron');
+const { dialog, app } = require('electron');
 
 function initUpdater(mainWindow) {
+  // Allow update checks in dev mode (uses dev-app-update.yml)
+  if (!app.isPackaged) {
+    autoUpdater.forceDevUpdateConfig = true;
+  }
+
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+
+  // Suppress noisy console logs from electron-updater
+  autoUpdater.logger = null;
+
+  autoUpdater.on('checking-for-update', () => {
+    mainWindow.webContents.send('update-status', {
+      type: 'checking',
+      message: 'Checking for updates...',
+    });
+  });
 
   autoUpdater.on('update-available', info => {
     mainWindow.webContents.send('update-status', {
@@ -13,10 +28,10 @@ function initUpdater(mainWindow) {
     });
   });
 
-  autoUpdater.on('update-not-available', () => {
+  autoUpdater.on('update-not-available', info => {
     mainWindow.webContents.send('update-status', {
       type: 'current',
-      message: 'You have the latest version.',
+      message: `You have the latest version (${info.version}).`,
     });
   });
 
@@ -24,6 +39,7 @@ function initUpdater(mainWindow) {
     mainWindow.webContents.send('update-status', {
       type: 'progress',
       percent: Math.round(progress.percent),
+      message: `Downloading update... ${Math.round(progress.percent)}%`,
     });
   });
 
@@ -38,7 +54,7 @@ function initUpdater(mainWindow) {
       type: 'info',
       title: 'Update Ready',
       message: `Home Helper ${info.version} is ready to install.`,
-      detail: 'Click "Restart Now" to apply the update, or it will install automatically next time you open the app.',
+      detail: 'Click "Restart Now" to apply the update, or it will install next time you open the app.',
       buttons: ['Restart Now', 'Later'],
       defaultId: 0,
     }).then(({ response }) => {
@@ -47,24 +63,46 @@ function initUpdater(mainWindow) {
   });
 
   autoUpdater.on('error', err => {
-    mainWindow.webContents.send('update-status', {
-      type: 'error',
-      message: 'Update check failed — check your internet connection.',
-    });
-    console.error('Auto-updater error:', err);
+    // Translate technical errors into plain messages
+    let message = `Update check failed: ${err.message}`;
+    if (err.message?.includes('net::') || err.message?.includes('ENOTFOUND') || err.message?.includes('ECONNREFUSED')) {
+      message = 'Cannot reach update server — check your internet connection.';
+    } else if (err.message?.includes('404') || err.message?.includes('not found')) {
+      message = 'No update available at this time.';
+    } else if (err.message?.includes('ENOENT') || err.message?.includes('No such file')) {
+      message = 'Update config missing — rebuild the app.';
+    }
+
+    mainWindow.webContents.send('update-status', { type: 'error', message });
+    console.error('[updater] error:', err.message);
   });
 
-  // Check on launch, then every 4 hours
-  setTimeout(() => autoUpdater.checkForUpdates(), 5000);
-  setInterval(() => autoUpdater.checkForUpdates(), 4 * 60 * 60 * 1000);
+  // Check on launch after 5s, then every 4 hours
+  setTimeout(() => safeCheck(), 5000);
+  setInterval(() => safeCheck(), 4 * 60 * 60 * 1000);
 }
 
-async function checkNow() {
+function safeCheck() {
+  autoUpdater.checkForUpdates().catch(err => {
+    console.error('[updater] background check failed:', err.message);
+  });
+}
+
+async function checkNow(mainWindow) {
   try {
+    mainWindow?.webContents.send('update-status', {
+      type: 'checking',
+      message: 'Checking for updates...',
+    });
     await autoUpdater.checkForUpdates();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e.message };
+    const msg = e.message || 'Unknown error';
+    mainWindow?.webContents.send('update-status', {
+      type: 'error',
+      message: `Update check failed: ${msg}`,
+    });
+    return { success: false, error: msg };
   }
 }
 

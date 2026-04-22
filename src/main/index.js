@@ -84,7 +84,7 @@ ipcMain.handle('ubiquiti:test', () => ubiquiti.testConnection());
 // ── App IPC ───────────────────────────────────────────────────────────────────
 
 ipcMain.handle('app:version', () => app.getVersion());
-ipcMain.handle('updater:check-now', () => checkNow());
+ipcMain.handle('updater:check-now', () => checkNow(mainWindow));
 
 // Launch a named macOS application (e.g. "UID Enterprise")
 ipcMain.handle('app:launch', (_, appName) => {

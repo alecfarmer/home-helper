@@ -554,21 +554,43 @@ $('btn-save-email').addEventListener('click', () => {
 });
 
 $('btn-check-updates').addEventListener('click', async () => {
-  $('btn-check-updates').textContent = 'Checking…';
-  $('btn-check-updates').disabled = true;
+  const btn = $('btn-check-updates');
+  btn.textContent = 'Checking…';
+  btn.disabled = true;
+
+  const statusEl = $('update-status-line');
+  statusEl.textContent = 'Checking for updates...';
+  statusEl.className = 'status-line';
+  statusEl.classList.remove('hidden');
+
   await window.api.checkForUpdates();
+
+  // Re-enable after 8s in case no IPC event fires
   setTimeout(() => {
-    $('btn-check-updates').textContent = 'Check for Updates Now';
-    $('btn-check-updates').disabled = false;
-  }, 3000);
+    btn.textContent = 'Check for Updates Now';
+    btn.disabled = false;
+  }, 8000);
 });
 
 window.api.on('update-status', info => {
   const el = $('update-status-line');
   if (!el) return;
-  el.textContent = info.message || '';
-  el.className = `status-line ${info.type === 'downloaded' || info.type === 'current' ? 'success' : info.type === 'error' ? 'error' : ''}`;
-  if (info.type !== 'current') show('update-status-line');
+
+  const text = info.type === 'progress'
+    ? `Downloading update... ${info.percent ?? ''}%`
+    : (info.message || '');
+
+  el.textContent = text;
+  el.className = 'status-line';
+  if (info.type === 'current' || info.type === 'downloaded') el.classList.add('success');
+  if (info.type === 'error') el.classList.add('error');
+  el.classList.remove('hidden');
+
+  // Re-enable the check button once we get a real result
+  if (['current', 'available', 'downloaded', 'error'].includes(info.type)) {
+    const btn = $('btn-check-updates');
+    if (btn) { btn.textContent = 'Check for Updates Now'; btn.disabled = false; }
+  }
 });
 
 /* ── MODAL ─────────────────────────────────────────────── */
